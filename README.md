@@ -1,2 +1,13 @@
-# AUTOFREEMONEY
-AUTO FREE MONEY by 350JAY is FREE AI-powered . AUTO-TOOLS for FREE. 
+# AUTO FREE MONEY
+
+Deployable starter for the FREE AI Command Center.
+
+## Verify
+
+```bash
+npm ci
+npm test
+npm run build
+```
+
+AWS Amplify deploys the generated `dist` directory from `main`.
