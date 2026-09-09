@@ -15,7 +15,9 @@ export default async function handler(request, response) {
     method: 'POST',
     headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: process.env.AI_GATEWAY_MODEL || 'openai/gpt-4o-mini',
+      // The -free model prevents an unexpected charge when no credits are configured.
+      // Set AI_GATEWAY_MODEL in Vercel later to choose a paid or BYOK model.
+      model: process.env.AI_GATEWAY_MODEL || 'inclusionai/ling-3.0-flash-sante-free',
       messages: [
         { role: 'system', content: 'You are the AUTO FREE MONEY command planner. Respond concisely with the first safe, actionable plan for the user request. Do not claim an action was completed unless it actually was.' },
         { role: 'user', content: task }
@@ -24,7 +26,14 @@ export default async function handler(request, response) {
     })
   });
   const payload = await upstream.json().catch(() => ({}));
-  if (!upstream.ok) return response.status(502).json({ error: 'The AI gateway rejected the request.' });
+  if (!upstream.ok) {
+    const detail = typeof payload.error === 'string'
+      ? payload.error
+      : typeof payload.error?.message === 'string'
+        ? payload.error.message
+        : typeof payload.message === 'string' ? payload.message : `HTTP ${upstream.status}`;
+    return response.status(502).json({ error: detail ? `The AI gateway rejected the request: ${detail}` : 'The AI gateway rejected the request.' });
+  }
   const result = payload.choices?.[0]?.message?.content;
   if (typeof result !== 'string' || !result.trim()) return response.status(502).json({ error: 'The AI gateway returned no response.' });
   return response.status(200).json({ result: result.trim() });
