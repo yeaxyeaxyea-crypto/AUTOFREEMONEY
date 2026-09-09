@@ -21,11 +21,33 @@ const form = document.querySelector('#command-form');
 const input = document.querySelector('#command');
 const response = document.querySelector('#response');
 
-form.addEventListener('submit', (event) => {
+form.addEventListener('submit', async (event) => {
   event.preventDefault();
   const result = createCommand(input.value);
-  response.textContent = result.ok
-    ? `Queued locally: “${result.task}”. Connect an AI provider to run it.`
-    : result.message;
-  response.dataset.state = result.ok ? 'pending' : 'error';
+  if (!result.ok) {
+    response.textContent = result.message;
+    response.dataset.state = 'error';
+    return;
+  }
+
+  response.textContent = `Running “${result.task}”…`;
+  response.dataset.state = 'running';
+  const button = form.querySelector('button');
+  button.disabled = true;
+  try {
+    const reply = await fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ task: result.task })
+    });
+    const payload = await reply.json().catch(() => ({}));
+    if (!reply.ok) throw new Error(payload.error || 'The AI provider could not run this command.');
+    response.textContent = payload.result || 'The AI provider completed the command.';
+    response.dataset.state = 'complete';
+  } catch (error) {
+    response.textContent = `${error.message} Your command was not sent to a provider.`;
+    response.dataset.state = 'error';
+  } finally {
+    button.disabled = false;
+  }
 });
