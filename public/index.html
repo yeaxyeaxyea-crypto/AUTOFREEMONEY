@@ -17,7 +17,10 @@
     <main class="shell">
       <header>
         <a class="brand" href="/" aria-label="AUTO FREE MONEY home"><span>AFM</span>AUTO FREE MONEY</a>
-        <div class="live"><i></i> DEVELOPMENT LIVE</div>
+        <div class="account">
+          <span id="auth-status">Base connection loading…</span>
+          <button id="sign-out" class="secondary" type="button" hidden>Sign out</button>
+        </div>
       </header>
 
       <section class="hero" aria-labelledby="title">
@@ -36,6 +39,15 @@
       </section>
 
       <section class="grid">
+        <article class="panel auth-panel">
+          <div class="panel-title"><div><p>SECURE ACCESS</p><h2>Sign in to your base</h2></div><span>Supabase</span></div>
+          <form id="auth-form" class="auth-form">
+            <label>Email<input id="auth-email" type="email" autocomplete="email" required /></label>
+            <label>Password<input id="auth-password" type="password" autocomplete="current-password" required /></label>
+            <button type="submit">Sign in</button>
+          </form>
+          <p id="auth-message" class="response" aria-live="polite"></p>
+        </article>
         <article class="panel">
           <div class="panel-title"><div><p>POWER BASE</p><h2>Connections</h2></div><span id="connection-count"></span></div>
           <ul id="connections" class="connections"></ul>
