@@ -10,6 +10,7 @@ export async function buildSite(output = join(root, 'dist')) {
   await cp(join(root, 'public'), output, { recursive: true });
   await cp(join(root, 'src'), join(output, 'src'), { recursive: true });
   await cp(join(root, 'src', 'app.js'), join(output, 'app.js'));
+  await cp(join(root, 'src', 'base.js'), join(output, 'base.js'));
   await cp(join(root, 'src', 'engine.js'), join(output, 'engine.js'));
 }
 
