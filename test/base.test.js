@@ -63,3 +63,18 @@ test('task history reads newest accessible tasks and propagates read errors', as
   const broken = { from: () => ({ select: () => ({ order: () => ({ limit: async () => ({ error: { message: 'Access denied' } }) }) }) }) };
   await assert.rejects(() => loadTasks(broken), /Access denied/);
 });
+
+test('running a saved task sends its existing id with a fresh session token', async () => {
+  const { runSavedTask } = await import('../src/base.js');
+  const client = { auth: { getSession: async () => ({ data: { session: { access_token: 'fresh-token' } }, error: null }) } };
+  const result = await runSavedTask(client, { id: 'existing-id', title: 'Plan', status: 'pending' }, async (url, options) => {
+    assert.equal(url, '/api/ai');
+    assert.equal(options.headers.authorization, 'Bearer fresh-token');
+    assert.deepEqual(JSON.parse(options.body), { task: 'Plan', taskId: 'existing-id' });
+    return { ok: true, json: async () => ({ result: 'Saved plan' }) };
+  });
+  assert.equal(result, 'Saved plan');
+  await assert.rejects(() => runSavedTask(client, { status: 'succeeded' }), /pending/);
+  await assert.rejects(() => runSavedTask({ auth: { getSession: async () => ({ data: { session: null } }) } }, { status: 'pending' }), /Sign in/);
+  await assert.rejects(() => runSavedTask(client, { status: 'pending', id: 'existing-id', title: 'Plan' }, async () => ({ ok: false, json: async () => ({ error: 'Already running' }) })), /Already running/);
+});

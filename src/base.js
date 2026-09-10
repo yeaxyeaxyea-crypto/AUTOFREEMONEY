@@ -40,3 +40,18 @@ export async function loadTasks(supabase) {
   fail(error);
   return data || [];
 }
+
+export async function runSavedTask(supabase, task, request = fetch) {
+  if (task.status !== 'pending') throw new Error('Only pending tasks can be run.');
+  const { data, error } = await supabase.auth.getSession();
+  fail(error);
+  if (!data?.session?.access_token) throw new Error('Sign in before running a task.');
+  const reply = await request('/api/ai', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${data.session.access_token}` },
+    body: JSON.stringify({ task: task.title, taskId: task.id })
+  });
+  const payload = await reply.json().catch(() => ({}));
+  if (!reply.ok) throw new Error(payload.error || 'Could not run the saved task.');
+  return payload.result;
+}

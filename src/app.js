@@ -1,5 +1,5 @@
 import { createCommand, getConnectionSummary } from './engine.js';
-import { saveCommand, loadTasks } from './base.js';
+import { saveCommand, loadTasks, runSavedTask } from './base.js';
 
 const authForm = document.querySelector('#auth-form');
 const authStatus = document.querySelector('#auth-status');
@@ -8,6 +8,7 @@ const signOutButton = document.querySelector('#sign-out');
 let supabase;
 let currentSession;
 let historyRequest = 0;
+const runningTasks = new Set();
 const historyPanel = document.querySelector('#task-history');
 const taskList = document.querySelector('#task-list');
 const historyMessage = document.querySelector('#history-message');
@@ -31,6 +32,34 @@ async function refreshTasks() {
       content.className = 'saved-result';
       content.textContent = task.output?.result || task.error || 'No result saved yet.';
       details.append(summary, date, content);
+      if (task.status === 'pending') {
+        const runButton = document.createElement('button');
+        runButton.type = 'button';
+        runButton.textContent = runningTasks.has(task.id) ? 'Running…' : 'Run task';
+        runButton.disabled = runningTasks.has(task.id);
+        const message = document.createElement('p');
+        message.setAttribute('aria-live', 'polite');
+        runButton.addEventListener('click', async () => {
+          if (runningTasks.has(task.id)) return;
+          runningTasks.add(task.id);
+          runButton.disabled = true;
+          runButton.textContent = 'Running…';
+          message.textContent = 'Generating and saving the plan…';
+          try {
+            const result = await runSavedTask(supabase, task);
+            content.textContent = result || 'Result saved. Refresh to view it.';
+            summary.textContent = `${task.title} — succeeded`;
+            runButton.hidden = true;
+            message.textContent = 'Plan saved.';
+          } catch (error) {
+            message.textContent = `${error.message} Use Refresh to check the latest task status.`;
+            runButton.textContent = 'Check status with Refresh';
+          } finally {
+            runningTasks.delete(task.id);
+          }
+        });
+        details.append(runButton, message);
+      }
       taskList.append(details);
     }
   } catch (error) {
