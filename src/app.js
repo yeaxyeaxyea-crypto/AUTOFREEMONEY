@@ -1,5 +1,5 @@
 import { createCommand, getConnectionSummary } from './engine.js';
-import { saveCommand } from './base.js';
+import { saveCommand, loadTasks } from './base.js';
 
 const authForm = document.querySelector('#auth-form');
 const authStatus = document.querySelector('#auth-status');
@@ -7,10 +7,46 @@ const authMessage = document.querySelector('#auth-message');
 const signOutButton = document.querySelector('#sign-out');
 let supabase;
 let currentSession;
+let historyRequest = 0;
+const historyPanel = document.querySelector('#task-history');
+const taskList = document.querySelector('#task-list');
+const historyMessage = document.querySelector('#history-message');
+
+async function refreshTasks() {
+  const requestId = ++historyRequest;
+  taskList.replaceChildren();
+  if (!currentSession?.user) return;
+  historyMessage.textContent = 'Loading saved tasks…';
+  try {
+    const tasks = await loadTasks(supabase);
+    if (requestId !== historyRequest || !currentSession?.user) return;
+    historyMessage.textContent = tasks.length ? 'Latest 20 tasks. Open a task to read its saved result.' : 'No saved tasks yet. Enter your first command above.';
+    for (const task of tasks) {
+      const details = document.createElement('details');
+      const summary = document.createElement('summary');
+      summary.textContent = `${task.title} — ${task.status}`;
+      const date = document.createElement('small');
+      date.textContent = new Date(task.created_at).toLocaleString();
+      const content = document.createElement('p');
+      content.className = 'saved-result';
+      content.textContent = task.output?.result || task.error || 'No result saved yet.';
+      details.append(summary, date, content);
+      taskList.append(details);
+    }
+  } catch (error) {
+    if (requestId === historyRequest) historyMessage.textContent = `Could not load history: ${error.message}`;
+  }
+}
+document.querySelector('#refresh-tasks').addEventListener('click', refreshTasks);
 
 function showSession(session, profile) {
   currentSession = session;
   const signedIn = Boolean(session?.user);
+  historyPanel.hidden = !signedIn;
+  ++historyRequest;
+  taskList.replaceChildren();
+  historyMessage.textContent = '';
+  if (signedIn) void refreshTasks();
   authForm.hidden = signedIn;
   signOutButton.hidden = !signedIn;
   authStatus.textContent = signedIn ? `Base verified: ${profile?.display_name || session.user.email}` : 'Base ready — sign in';
@@ -122,5 +158,6 @@ form.addEventListener('submit', async (event) => {
     response.dataset.state = 'error';
   } finally {
     button.disabled = false;
+    void refreshTasks();
   }
 });

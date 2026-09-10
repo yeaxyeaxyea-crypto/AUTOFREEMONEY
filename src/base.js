@@ -32,3 +32,11 @@ export async function saveCommand(supabase, user, task) {
   fail(saved.error);
   return saved.data.id;
 }
+
+export async function loadTasks(supabase) {
+  const { data, error } = await supabase.from('tasks')
+    .select('id,title,status,output,error,created_at')
+    .order('created_at', { ascending: false }).limit(20);
+  fail(error);
+  return data || [];
+}

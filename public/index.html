@@ -48,6 +48,11 @@
           </form>
           <p id="auth-message" class="response" aria-live="polite"></p>
         </article>
+        <article class="panel history-panel" id="task-history" hidden>
+          <div class="panel-title"><div><p>SAVED WORK</p><h2>Task history</h2></div><button id="refresh-tasks" class="secondary" type="button">Refresh</button></div>
+          <p id="history-message" aria-live="polite"></p>
+          <div id="task-list"></div>
+        </article>
         <article class="panel">
           <div class="panel-title"><div><p>POWER BASE</p><h2>Connections</h2></div><span id="connection-count"></span></div>
           <ul id="connections" class="connections"></ul>

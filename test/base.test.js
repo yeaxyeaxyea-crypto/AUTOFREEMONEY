@@ -44,3 +44,22 @@ test('first saved command creates the default workspace and project', async () =
 test('saving a command requires an authenticated user', async () => {
   await assert.rejects(() => saveCommand({}, null, 'Build my app'), /Sign in to save/);
 });
+
+test('task history reads newest accessible tasks and propagates read errors', async () => {
+  const { loadTasks } = await import('../src/base.js');
+  const rows = [{ id: 'task-1', title: 'Build', status: 'succeeded', output: { result: 'Plan' } }];
+  const client = { from(table) {
+    assert.equal(table, 'tasks');
+    return { select(fields) {
+      assert.ok(fields.includes('output'));
+      return { order(field, options) {
+        assert.equal(field, 'created_at');
+        assert.equal(options.ascending, false);
+        return { limit: async () => ({ data: rows, error: null }) };
+      } };
+    } };
+  } };
+  assert.deepEqual(await loadTasks(client), rows);
+  const broken = { from: () => ({ select: () => ({ order: () => ({ limit: async () => ({ error: { message: 'Access denied' } }) }) }) }) };
+  await assert.rejects(() => loadTasks(broken), /Access denied/);
+});
