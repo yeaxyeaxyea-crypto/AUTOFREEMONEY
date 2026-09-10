@@ -25,6 +25,10 @@ export async function saveCommand(supabase, user, task) {
     projectId = created.data.id;
   }
 
-  const saved = await supabase.from('tasks').insert({ project_id: projectId, title: task, input: { prompt: task } });
+  const saved = await supabase.from('tasks')
+    .insert({ project_id: projectId, title: task, input: { prompt: task } })
+    .select('id')
+    .single();
   fail(saved.error);
+  return saved.data.id;
 }

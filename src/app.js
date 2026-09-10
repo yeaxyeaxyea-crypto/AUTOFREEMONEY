@@ -104,11 +104,14 @@ form.addEventListener('submit', async (event) => {
   const button = form.querySelector('button');
   button.disabled = true;
   try {
-    await saveCommand(supabase, currentSession?.user, result.task);
+    const taskId = await saveCommand(supabase, currentSession?.user, result.task);
     const reply = await fetch('/api/ai', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ task: result.task })
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${currentSession.access_token}`
+      },
+      body: JSON.stringify({ task: result.task, taskId })
     });
     const payload = await reply.json().catch(() => ({}));
     if (!reply.ok) throw new Error(payload.error || 'The AI provider could not run this command.');
